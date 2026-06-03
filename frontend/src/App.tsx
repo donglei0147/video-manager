@@ -1,8 +1,10 @@
-import { FolderOpenOutlined, VideoCameraOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, FolderOpenOutlined, TagsOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
 import { useMemo } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import LibraryPage from "./pages/LibraryPage";
+import CategoryManagePage from "./pages/CategoryManagePage";
+import TagManagePage from "./pages/TagManagePage";
 import SettingsPage from "./pages/SettingsPage";
 import VideoDetailPage from "./pages/VideoDetailPage";
 import "./App.css";
@@ -13,6 +15,8 @@ function AppLayout() {
   const location = useLocation();
   const selected = useMemo(() => {
     if (location.pathname.startsWith("/settings")) return "settings";
+    if (location.pathname.startsWith("/tags")) return "tags";
+    if (location.pathname.startsWith("/categories")) return "categories";
     return "library";
   }, [location.pathname]);
 
@@ -35,6 +39,16 @@ function AppLayout() {
               icon: <FolderOpenOutlined />,
               label: <Link to="/settings">设置</Link>,
             },
+            {
+              key: "tags",
+              icon: <TagsOutlined />,
+              label: <Link to="/tags">标签管理</Link>,
+            },
+            {
+              key: "categories",
+              icon: <AppstoreOutlined />,
+              label: <Link to="/categories">分类管理</Link>,
+            },
           ]}
         />
       </Header>
@@ -43,6 +57,8 @@ function AppLayout() {
           <Route path="/" element={<LibraryPage />} />
           <Route path="/videos/:id" element={<VideoDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/tags" element={<TagManagePage />} />
+          <Route path="/categories" element={<CategoryManagePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Content>

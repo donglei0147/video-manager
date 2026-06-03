@@ -8,7 +8,7 @@ export class ApiError extends Error {
 
 const ENV_API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ?? "";
 const API_BASE = ENV_API_BASE.replace(/\/+$/, "");
-const DEFAULT_API_BASE = "http://127.0.0.1:8765";
+const DEFAULT_API_BASE = "http://127.0.0.1:8766";
 
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;

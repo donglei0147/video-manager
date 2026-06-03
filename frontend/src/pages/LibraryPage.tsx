@@ -22,7 +22,7 @@ import {
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { listCategories, type Category } from "../api/categories";
-import { listTags, type TagItem } from "../api/tags";
+import { getOrCreateTag, listTags, type TagItem } from "../api/tags";
 import {
   createMergeVideos,
   deleteVideo,
@@ -59,6 +59,8 @@ export default function LibraryPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [allTags, setAllTags] = useState<TagItem[]>([]);
+  const [newTagName, setNewTagName] = useState("");
+  const [creatingTag, setCreatingTag] = useState(false);
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -72,14 +74,17 @@ export default function LibraryPage() {
   const [mergeName, setMergeName] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
 
+  const refreshAllTags = useCallback(async () => {
+    const r = await listTags(undefined, 100);
+    setAllTags(r.items);
+  }, []);
+
   useEffect(() => {
     listCategories()
       .then((r) => setCategories(r.items))
       .catch(() => {});
-    listTags(undefined, 100)
-      .then((r) => setAllTags(r.items))
-      .catch(() => {});
-  }, []);
+    refreshAllTags().catch(() => {});
+  }, [refreshAllTags]);
 
   const buildParams = useCallback((): VideoListParams => {
     const p: VideoListParams = {
@@ -161,6 +166,26 @@ export default function LibraryPage() {
     setNoRecordTime(false);
     setFavoriteMin(undefined);
     setPage(1);
+  };
+
+  const handleCreateTag = async () => {
+    const name = newTagName.trim();
+    if (!name) {
+      message.warning("请输入标签名");
+      return;
+    }
+    setCreatingTag(true);
+    try {
+      const created = await getOrCreateTag(name);
+      await refreshAllTags();
+      setTagIds((prev) => (prev.includes(created.id) ? prev : [...prev, created.id]));
+      setNewTagName("");
+      message.success(`标签「${created.name}」已保存`);
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "保存标签失败");
+    } finally {
+      setCreatingTag(false);
+    }
   };
 
   const selectedVideos = selectedIds
@@ -356,6 +381,16 @@ export default function LibraryPage() {
             value={tagIds}
             onChange={setTagIds}
             options={allTags.map((t) => ({ value: t.id, label: t.name }))}
+          />
+          <Input.Search
+            placeholder="输入标签名，回车新增"
+            enterButton="新增标签"
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+            onSearch={() => {
+              void handleCreateTag();
+            }}
+            loading={creatingTag}
           />
           <InputNumber
             min={1}

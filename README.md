@@ -4,7 +4,7 @@
 
 **技术栈：** Python 3.11+ · FastAPI · SQLite · React · TypeScript · Vite · Ant Design
 
-**当前版本范围：** PRD Phase 1（扫描文件夹、快速扫描、分页列表、首帧预览）
+**当前版本范围：** 扫描、分页浏览、标注、截取、合并、删除
 
 ---
 
@@ -41,12 +41,12 @@ npm install
 
 ## 启动
 
-**终端 1 — 后端（端口 8765）：**
+**终端 1 — 后端（开发联调端口 8766）：**
 
 ```powershell
 cd D:\project\video\backend
 .\.venv\Scripts\Activate.ps1
-uvicorn app.main:app --host 127.0.0.1 --port 8765 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8766 --reload
 ```
 
 **终端 2 — 前端（开发代理）：**
@@ -59,7 +59,7 @@ npm run dev
 | 地址 | 说明 |
 |------|------|
 | http://localhost:5173 | 浏览器访问（推荐） |
-| http://127.0.0.1:8765/api/health | API 健康检查 |
+| http://127.0.0.1:8766/api/health | API 健康检查（前端代理目标） |
 
 ---
 
@@ -68,6 +68,13 @@ npm run dev
 1. 打开 **设置**，点击「添加扫描文件夹」→ 系统弹窗选择目录（无需手输路径）。
 2. 点击「扫描」或「扫描全部（启用）」建立视频索引。
 3. 在 **视频库** 分页浏览；当前页自动加载首帧预览（每页最多 100 条）。
+4. 在 **详情页/列表页** 可删除视频：源文件移动到同目录 `_delete`，数据库记录真删除。
+5. 多视频合并成功后，参与合并的原视频默认移动到各自目录下 `_delete`。
+
+补充规则：
+
+- 扫描递归跳过 `_temp` 和 `_delete` 目录。
+- 截取输出到源目录 `_temp`，同名覆盖。
 
 ---
 

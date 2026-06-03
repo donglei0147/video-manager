@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 
 export interface Category {
   id: number;
@@ -13,6 +13,13 @@ export function listCategories() {
 
 export function createCategory(name: string, sort_order = 0) {
   return apiPost<Category>("/api/categories", { name, sort_order });
+}
+
+export function updateCategory(
+  id: number,
+  body: Partial<Pick<Category, "name" | "sort_order">>
+) {
+  return apiPatch<Category>(`/api/categories/${id}`, body);
 }
 
 export function deleteCategory(id: number) {

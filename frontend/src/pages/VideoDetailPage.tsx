@@ -19,7 +19,8 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { listCategories, type Category } from "../api/categories";
-import { listTags, createTag } from "../api/tags";
+import { ApiError } from "../api/client";
+import { getOrCreateTag, listTags } from "../api/tags";
 import {
   createVideoClip,
   deleteVideo,
@@ -89,38 +90,53 @@ export default function VideoDetailPage() {
     setTagOptions(res.items.map((t) => ({ value: t.name, id: t.id })));
   };
 
-  const save = async (patch: Record<string, unknown>) => {
+  const save = async (patch: Record<string, unknown>, successMsg = "已保存") => {
     setSaving(true);
     try {
       const updated = await updateVideo(videoId, patch);
       setVideo(updated);
       setSelectedTagIds(updated.tags.map((t) => t.id));
-      message.success("已保存");
+      const labels: Record<number, string> = {};
+      updated.tags.forEach((t) => {
+        labels[t.id] = t.name;
+      });
+      setTagLabels(labels);
+      message.success(successMsg);
     } catch (e) {
-      message.error(e instanceof Error ? e.message : "保存失败");
+      if (e instanceof ApiError) message.error(e.message);
+      else message.error(e instanceof Error ? e.message : "保存失败");
     } finally {
       setSaving(false);
     }
   };
 
+  const saveTags = async (tagIds: number[]) => {
+    await save({ tag_ids: tagIds }, "标签已保存");
+  };
+
   const saveAllAnnotations = () => {
-    save({ tag_ids: selectedTagIds });
+    void saveTags(selectedTagIds);
   };
 
   const addTagByName = async (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const existing = tagOptions.find((o) => o.value === trimmed);
-    let tagId = existing?.id;
-    if (!tagId) {
-      const created = await createTag(trimmed);
-      tagId = created.id;
+    try {
+      const existing = tagOptions.find((o) => o.value === trimmed);
+      const tag = existing ? { id: existing.id, name: trimmed } : await getOrCreateTag(trimmed);
+      const nextIds = selectedTagIds.includes(tag.id) ? selectedTagIds : [...selectedTagIds, tag.id];
+      setTagLabels((prev) => ({ ...prev, [tag.id]: tag.name }));
+      setTagInput("");
+      await saveTags(nextIds);
+    } catch (e) {
+      if (e instanceof ApiError) message.error(e.message);
+      else message.error(e instanceof Error ? e.message : "标签添加失败");
     }
-    if (!selectedTagIds.includes(tagId)) {
-      setSelectedTagIds([...selectedTagIds, tagId]);
-      setTagLabels((prev) => ({ ...prev, [tagId]: trimmed }));
-    }
-    setTagInput("");
+  };
+
+  const removeTag = (tagId: number) => {
+    const nextIds = selectedTagIds.filter((id) => id !== tagId);
+    void saveTags(nextIds);
   };
 
   if (!video) {
@@ -267,11 +283,13 @@ export default function VideoDetailPage() {
                   options={tagOptions.map((o) => ({ value: o.value }))}
                   value={tagInput}
                   onSearch={searchTags}
-                  onSelect={(val) => addTagByName(val)}
+                  onSelect={(val) => {
+                    void addTagByName(val);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      addTagByName(tagInput);
+                      void addTagByName(tagInput);
                     }
                   }}
                   placeholder="输入标签，回车添加"
@@ -281,7 +299,10 @@ export default function VideoDetailPage() {
                     <Tag
                       key={tid}
                       closable
-                      onClose={() => setSelectedTagIds(selectedTagIds.filter((id) => id !== tid))}
+                      onClose={(e) => {
+                        e.preventDefault();
+                        removeTag(tid);
+                      }}
                     >
                       {tagLabels[tid] ?? `标签#${tid}`}
                     </Tag>
