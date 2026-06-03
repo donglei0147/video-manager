@@ -19,6 +19,12 @@ export interface TagBrief {
   name: string;
 }
 
+export interface ThemeBackgroundBrief {
+  id: number;
+  name: string;
+  image_url: string;
+}
+
 export interface VideoSummary {
   id: number;
   file_name: string;
@@ -37,6 +43,7 @@ export interface VideoSummary {
   has_audio: boolean;
   category: CategoryBrief | null;
   tags: TagBrief[];
+  theme_background: ThemeBackgroundBrief | null;
   stream_url: string;
 }
 

@@ -37,6 +37,7 @@ class Video(Base):
     favorite_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     file_mtime: Mapped[str | None] = mapped_column(String, nullable=True)
     category_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    theme_background_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     metadata_status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
     missing: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     indexed_at: Mapped[str] = mapped_column(String, nullable=False)
@@ -65,6 +66,20 @@ class VideoTag(Base):
 
     video_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tag_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+
+class ThemeBackground(Base):
+    __tablename__ = "theme_background"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    file_path: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    source_video_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_time_sec: Mapped[float | None] = mapped_column(Float, nullable=True)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+    updated_at: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class Job(Base):

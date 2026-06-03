@@ -17,10 +17,12 @@ import {
   Select,
   Space,
   Switch,
+  Tag,
   Typography,
   message,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { listCategories, type Category } from "../api/categories";
 import { getOrCreateTag, listTags, type TagItem } from "../api/tags";
 import {
@@ -47,6 +49,13 @@ const SORT_OPTIONS = [
 ];
 
 export default function LibraryPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const themeBackgroundIdParam = searchParams.get("theme_background_id");
+  const themeBackgroundNameParam = searchParams.get("theme_background_name");
+  const initialThemeBackgroundId = themeBackgroundIdParam
+    ? Number(themeBackgroundIdParam)
+    : undefined;
+
   const [videos, setVideos] = useState<VideoSummary[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(24);
@@ -68,6 +77,12 @@ export default function LibraryPage() {
   const [recordStartTo, setRecordStartTo] = useState("");
   const [noRecordTime, setNoRecordTime] = useState(false);
   const [favoriteMin, setFavoriteMin] = useState<number | undefined>();
+  const [themeBackgroundId, setThemeBackgroundId] = useState<number | undefined>(
+    Number.isFinite(initialThemeBackgroundId) ? initialThemeBackgroundId : undefined
+  );
+  const [themeBackgroundLabel, setThemeBackgroundLabel] = useState(
+    themeBackgroundNameParam ?? ""
+  );
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeSubmitting, setMergeSubmitting] = useState(false);
@@ -100,6 +115,7 @@ export default function LibraryPage() {
     if (recordStartTo) p.record_start_to = recordStartTo;
     if (noRecordTime) p.has_record_time = false;
     if (favoriteMin != null) p.favorite_min = favoriteMin;
+    if (themeBackgroundId != null) p.theme_background_id = themeBackgroundId;
     return p;
   }, [
     page,
@@ -113,6 +129,7 @@ export default function LibraryPage() {
     recordStartTo,
     noRecordTime,
     favoriteMin,
+    themeBackgroundId,
   ]);
 
   const fetchList = useCallback(async () => {
@@ -165,6 +182,9 @@ export default function LibraryPage() {
     setRecordStartTo("");
     setNoRecordTime(false);
     setFavoriteMin(undefined);
+    setThemeBackgroundId(undefined);
+    setThemeBackgroundLabel("");
+    setSearchParams({});
     setPage(1);
   };
 
@@ -213,6 +233,7 @@ export default function LibraryPage() {
     noRecordTime,
     favoriteMin != null,
     includeMissing,
+    themeBackgroundId != null,
   ].filter(Boolean).length;
 
   const openMergeModal = () => {
@@ -261,6 +282,21 @@ export default function LibraryPage() {
     <div className="page library-page">
       <div className="page-header">
         <Title level={3} style={{ margin: 0 }}>视频库</Title>
+        {themeBackgroundId != null && (
+          <Tag
+            closable
+            color="purple"
+            onClose={() => {
+              setThemeBackgroundId(undefined);
+              setThemeBackgroundLabel("");
+              setSearchParams({});
+              setPage(1);
+            }}
+            style={{ marginTop: 8 }}
+          >
+            主题背景图：{themeBackgroundLabel || `#${themeBackgroundId}`}
+          </Tag>
+        )}
         <Space wrap>
           <Input.Search
             placeholder="搜索文件名 / 路径关键词"

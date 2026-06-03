@@ -100,6 +100,7 @@ HTTP 状态码非 2xx 时，响应体：
   "has_audio": true,
   "category": { "id": 2, "name": "家庭" },
   "tags": [{ "id": 1, "name": "旅行" }],
+  "theme_background": { "id": 3, "name": "room_0001", "image_url": "/api/theme-backgrounds/3/image" },
   "stream_url": "/api/videos/1/stream"
 }
 ```
@@ -280,6 +281,7 @@ HTTP 状态码非 2xx 时，响应体：
 | record_end_to | string | 录制结束时间上限 |
 | has_record_time | boolean | true=至少填了开始或结束之一；false=都未填 |
 | favorite_min | integer | 最低喜爱度（含） |
+| theme_background_id | integer | 按主题背景图 id 筛选 |
 | include_missing | boolean | 默认 false，是否包含 missing |
 | sort | string | 见下表 |
 
@@ -372,6 +374,40 @@ Range: bytes=0-
 
 **安全：** 禁止通过 id 访问未纳入扫描目录的文件（PATH_NOT_ALLOWED）。
 
+### 4.6 从当前帧创建主题背景图
+
+`POST /api/videos/{id}/theme-backgrounds/from-frame`
+
+**请求体：**
+
+```json
+{
+  "time_sec": 35.2,
+  "name": null
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| time_sec | 截帧时间点（秒），必填 |
+| name | 可选；为空时自动生成 `room_XXXX` |
+
+**响应 201：** `ThemeBackground` 对象；同时将当前视频关联到该背景图。
+
+**错误：** `404` 视频不存在或文件缺失；`409` 名称重复；`400` 参数无效。
+
+### 4.7 关联已有主题背景图
+
+`POST /api/videos/{id}/theme-backgrounds/{background_id}/link`
+
+**响应 200：** `VideoDetail`。若视频已有其他背景图关联则替换。
+
+### 4.8 解除视频与主题背景图关联
+
+`DELETE /api/videos/{id}/theme-background`
+
+**响应 204**
+
 ---
 
 ## 5. 分类
@@ -441,6 +477,61 @@ Range: bytes=0-
 `DELETE /api/tags/{id}`
 
 删除时清理 `video_tag` 关联（应用层）。
+
+**响应 204**
+
+---
+
+## 6.5 主题背景图
+
+### 6.5.1 对象 ThemeBackground
+
+```json
+{
+  "id": 1,
+  "name": "room_0001",
+  "image_url": "/api/theme-backgrounds/1/image",
+  "source_video_id": 12,
+  "source_time_sec": 35.2,
+  "width": 1920,
+  "height": 1080,
+  "video_count": 3,
+  "created_at": "2026-06-03 17:00:00",
+  "updated_at": "2026-06-03 17:00:00"
+}
+```
+
+### 6.5.2 列表
+
+`GET /api/theme-backgrounds?keyword=&page=1&page_size=24`
+
+**响应 200：** 分页结构，`items` 为 `ThemeBackground[]`。
+
+### 6.5.3 详情
+
+`GET /api/theme-backgrounds/{id}`
+
+### 6.5.4 重命名
+
+`PATCH /api/theme-backgrounds/{id}`
+
+```json
+{ "name": "room_0002" }
+```
+
+**错误：** `409 CONFLICT` 名称已存在。
+
+### 6.5.5 删除
+
+`DELETE /api/theme-backgrounds/{id}`
+
+解除所有视频关联并删除磁盘文件。**响应 204**。
+
+### 6.5.6 图片流
+
+`GET /api/theme-backgrounds/{id}/image`
+
+**响应 200：** `image/jpeg`
 
 ---
 
@@ -677,6 +768,7 @@ Range: bytes=0-
 | POST jobs/merge-videos/preflight | FR-9, FR-10 |
 | POST jobs/merge-videos | FR-9, FR-11, FR-13 |
 | POST videos/{id}/open-folder | FR-12 |
+| theme-backgrounds + videos theme APIs | FR-14 |
 | categories / tags | FR-7, FR-5 |
 
 ---

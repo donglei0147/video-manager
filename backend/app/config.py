@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data"
+ASSETS_DIR = DATA_DIR / "assets" / "theme-backgrounds"
 
 
 class Settings(BaseSettings):

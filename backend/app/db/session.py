@@ -47,6 +47,52 @@ def _migrate_scan_folder_error_column() -> None:
             conn.commit()
 
 
+def _migrate_theme_background() -> None:
+    with engine.connect() as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table'")
+            ).fetchall()
+        }
+        if "theme_background" not in tables:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE theme_background (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL UNIQUE,
+                        file_path TEXT NOT NULL UNIQUE,
+                        source_video_id INTEGER,
+                        source_time_sec REAL,
+                        width INTEGER,
+                        height INTEGER,
+                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+                        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_theme_background_name ON theme_background(name)"
+                )
+            )
+            conn.commit()
+
+        rows = conn.execute(text("PRAGMA table_info(video)")).fetchall()
+        names = {row[1] for row in rows}
+        if "theme_background_id" not in names:
+            conn.execute(text("ALTER TABLE video ADD COLUMN theme_background_id INTEGER"))
+            conn.commit()
+        conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_video_theme_background ON video(theme_background_id)"
+            )
+        )
+        conn.commit()
+
+
 def init_db() -> None:
     sql_path = Path(__file__).resolve().parents[2] / "scripts" / "init_db.sql"
     script = sql_path.read_text(encoding="utf-8")
@@ -57,3 +103,4 @@ def init_db() -> None:
     finally:
         raw.close()
     _migrate_scan_folder_error_column()
+    _migrate_theme_background()

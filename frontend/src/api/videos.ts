@@ -15,6 +15,7 @@ export interface VideoListParams {
   record_end_to?: string;
   has_record_time?: boolean;
   favorite_min?: number;
+  theme_background_id?: number;
 }
 
 export interface VideoDetail extends VideoSummary {
@@ -53,6 +54,9 @@ export function listVideos(params: VideoListParams = {}) {
   if (params.has_record_time === true) q.set("has_record_time", "true");
   if (params.has_record_time === false) q.set("has_record_time", "false");
   if (params.favorite_min != null) q.set("favorite_min", String(params.favorite_min));
+  if (params.theme_background_id != null) {
+    q.set("theme_background_id", String(params.theme_background_id));
+  }
   const qs = q.toString();
   return apiGet<Paginated<VideoSummary>>(`/api/videos${qs ? `?${qs}` : ""}`);
 }

@@ -170,6 +170,7 @@ erDiagram
 | favorite_level | INTEGER | NOT NULL, CHECK(0..10) | 0 | 喜爱度，0=未设置，1～10 |
 | file_mtime | DATETIME | NULL | | 文件修改时间 |
 | category_id | INTEGER | NULL | | 分类（逻辑关联，可空） |
+| theme_background_id | INTEGER | NULL | | 主题背景图（逻辑关联，可空） |
 | metadata_status | TEXT | NOT NULL | 'pending' | pending/ready/failed |
 | missing | INTEGER | NOT NULL | 0 | 是否缺失（0/1） |
 | indexed_at | DATETIME | NOT NULL | CURRENT_TIMESTAMP | 首次入库 |
@@ -207,6 +208,27 @@ erDiagram
 
 联合主键 `(video_id, tag_id)`。
 
+### 3.8 theme_background（主题背景图）
+
+| 字段 | 类型 | 约束 | 默认 | 说明 |
+|------|------|------|------|------|
+| id | INTEGER | PK, AUTOINCREMENT | | 主键 |
+| name | TEXT | NOT NULL, UNIQUE | | 展示名称（如 room_0001） |
+| file_path | TEXT | NOT NULL, UNIQUE | | 磁盘路径，位于 `data/assets/theme-backgrounds/` |
+| source_video_id | INTEGER | NULL | | 首次截帧来源视频 id |
+| source_time_sec | REAL | NULL | | 截帧时间点（秒） |
+| width | INTEGER | NULL | | 图片宽 |
+| height | INTEGER | NULL | | 图片高 |
+| created_at | DATETIME | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
+| updated_at | DATETIME | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+**应用层约束：**
+
+- `name` 全局唯一
+- `video.theme_background_id` 可空；每个视频最多 1 张
+- 同一 `theme_background_id` 可被多个 `video` 引用（1:N）
+- 删除主题背景图：将所有关联视频的 `theme_background_id` 置 NULL，并删除磁盘文件
+
 ### 3.6 job（任务）
 
 | 字段 | 类型 | 约束 | 默认 | 说明 |
@@ -239,6 +261,8 @@ erDiagram
 | ux_video_file_path | video | file_path | 唯一、增量扫描 |
 | ix_video_folder | video | scan_folder_id | 按文件夹统计 |
 | ix_video_category | video | category_id | 分类筛选 |
+| ix_video_theme_background | video | theme_background_id | 按主题背景图筛选 |
+| ix_theme_background_name | theme_background | name | 名称搜索 |
 | ix_video_favorite | video | favorite_level | 喜爱度筛选/排序 |
 | ix_video_record_start | video | record_start_at | 录制开始时间筛选 |
 | ix_video_record_end | video | record_end_at | 录制结束时间筛选 |

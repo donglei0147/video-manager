@@ -1,6 +1,5 @@
-import { ArrowLeftOutlined, DeleteOutlined, FolderOpenOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, FolderOpenOutlined, PictureOutlined } from "@ant-design/icons";
 import {
-  AutoComplete,
   Button,
   DatePicker,
   Drawer,
@@ -16,11 +15,17 @@ import {
   message,
 } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { listCategories, type Category } from "../api/categories";
 import { ApiError } from "../api/client";
 import { getOrCreateTag, listTags } from "../api/tags";
+import {
+  createThemeBackgroundFromFrame,
+  linkThemeBackground,
+  listThemeBackgrounds,
+  type ThemeBackground,
+} from "../api/themeBackgrounds";
 import {
   createVideoClip,
   deleteVideo,
@@ -60,6 +65,12 @@ export default function VideoDetailPage() {
   const [clipName, setClipName] = useState("");
   const [clipping, setClipping] = useState(false);
   const [clipOpen, setClipOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [themeName, setThemeName] = useState("");
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeOptions, setThemeOptions] = useState<ThemeBackground[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const load = useCallback(async () => {
     const [v, cats] = await Promise.all([getVideo(videoId), listCategories()]);
@@ -86,9 +97,14 @@ export default function VideoDetailPage() {
 
   const searchTags = async (text: string) => {
     setTagInput(text);
-    const res = await listTags(text || undefined, 20);
+    const res = await listTags(text || undefined, 100);
     setTagOptions(res.items.map((t) => ({ value: t.name, id: t.id })));
   };
+
+  const loadTagOptions = useCallback(async (text = "") => {
+    const res = await listTags(text || undefined, 100);
+    setTagOptions(res.items.map((t) => ({ value: t.name, id: t.id })));
+  }, []);
 
   const save = async (patch: Record<string, unknown>, successMsg = "已保存") => {
     setSaving(true);
@@ -139,12 +155,60 @@ export default function VideoDetailPage() {
     void saveTags(nextIds);
   };
 
+  useEffect(() => {
+    listThemeBackgrounds({ page: 1, page_size: 100 })
+      .then((r) => setThemeOptions(r.items))
+      .catch(() => {});
+    void loadTagOptions();
+  }, [loadTagOptions]);
+
   if (!video) {
     return <div style={{ padding: 24 }}>加载中…</div>;
   }
 
   const canPlay = video.playback_supported && !video.missing;
   const canClip = !video.missing && video.has_audio;
+
+  const saveThemeFromFrame = async () => {
+    if (!canPlay) {
+      message.warning("当前视频无法播放，无法截帧");
+      return;
+    }
+    const timeSec = videoRef.current?.currentTime ?? currentTime;
+    setThemeSaving(true);
+    try {
+      const bg = await createThemeBackgroundFromFrame(videoId, {
+        time_sec: timeSec,
+        name: themeName.trim() || null,
+      });
+      const updated = await getVideo(videoId);
+      setVideo(updated);
+      setThemeModalOpen(false);
+      setThemeName("");
+      message.success(`已设为主题背景图：${bg.name}`);
+      listThemeBackgrounds({ page: 1, page_size: 100 })
+        .then((r) => setThemeOptions(r.items))
+        .catch(() => {});
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setThemeSaving(false);
+    }
+  };
+
+  const changeThemeBackground = async (backgroundId: number) => {
+    if (video?.theme_background?.id === backgroundId) return;
+    setThemeSaving(true);
+    try {
+      const updated = await linkThemeBackground(videoId, backgroundId);
+      setVideo(updated);
+      message.success("主题背景图已更新");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "更新失败");
+    } finally {
+      setThemeSaving(false);
+    }
+  };
 
   const submitClip = async () => {
     if (clipStart == null || Number.isNaN(clipStart)) {
@@ -238,7 +302,13 @@ export default function VideoDetailPage() {
         <Col xs={24} lg={16}>
           <div className="video-player-panel">
             {canPlay ? (
-              <video controls style={{ width: "100%", maxHeight: 520, background: "#000" }} src={video.stream_url} />
+              <video
+                ref={videoRef}
+                controls
+                style={{ width: "100%", maxHeight: 520, background: "#000" }}
+                src={video.stream_url}
+                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+              />
             ) : (
               <div style={{ padding: 24, background: "#fafafa", borderRadius: 8 }}>
                 <Paragraph>
@@ -254,9 +324,48 @@ export default function VideoDetailPage() {
                 )}
               </div>
             )}
+            {canPlay && !video.theme_background && (
+              <div style={{ marginTop: 12 }}>
+                <Space wrap>
+                  <Button
+                    icon={<PictureOutlined />}
+                    onClick={() => setThemeModalOpen(true)}
+                    disabled={video.missing}
+                  >
+                    设为主题背景图（当前帧 {currentTime.toFixed(1)}s）
+                  </Button>
+                </Space>
+              </div>
+            )}
           </div>
         </Col>
         <Col xs={24} lg={8}>
+          <div className="video-meta-panel" style={{ marginBottom: 16 }}>
+            <div className="video-meta-title">
+              <Text strong>主题背景图</Text>
+            </div>
+            <Select
+              showSearch
+              placeholder="选择主题背景图"
+              style={{ width: "100%" }}
+              value={video.theme_background?.id}
+              loading={themeSaving}
+              onChange={(id) => void changeThemeBackground(id)}
+              optionFilterProp="label"
+              options={themeOptions.map((t) => ({
+                value: t.id,
+                label: t.name,
+              }))}
+            />
+            {video.theme_background && (
+              <Link
+                to={`/?theme_background_id=${video.theme_background.id}&theme_background_name=${encodeURIComponent(video.theme_background.name)}`}
+                style={{ fontSize: 12, marginTop: 8, display: "inline-block" }}
+              >
+                查看关联视频
+              </Link>
+            )}
+          </div>
           <div className="video-meta-panel">
             <div className="video-meta-title">
               <Text strong>标注</Text>
@@ -278,21 +387,30 @@ export default function VideoDetailPage() {
               </div>
               <div>
                 <Text type="secondary">标签</Text>
-                <AutoComplete
+                <Select
+                  showSearch
                   style={{ width: "100%", marginTop: 6 }}
-                  options={tagOptions.map((o) => ({ value: o.value }))}
-                  value={tagInput}
+                  placeholder="选择或输入标签，回车添加"
+                  value={null}
+                  searchValue={tagInput}
                   onSearch={searchTags}
                   onSelect={(val) => {
-                    void addTagByName(val);
+                    void addTagByName(String(val));
+                    setTagInput("");
                   }}
-                  onKeyDown={(e) => {
+                  onFocus={() => {
+                    if (tagOptions.length === 0) void loadTagOptions();
+                  }}
+                  filterOption={false}
+                  optionFilterProp="label"
+                  options={tagOptions.map((o) => ({ value: o.value, label: o.value }))}
+                  onInputKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       void addTagByName(tagInput);
+                      setTagInput("");
                     }
                   }}
-                  placeholder="输入标签，回车添加"
                 />
                 <div style={{ marginTop: 8 }}>
                   {selectedTagIds.map((tid) => (
@@ -394,6 +512,27 @@ export default function VideoDetailPage() {
           )}
         </Space>
       </Drawer>
+
+      <Modal
+        title="设为主题背景图"
+        open={themeModalOpen}
+        onCancel={() => setThemeModalOpen(false)}
+        onOk={() => void saveThemeFromFrame()}
+        okText="保存当前帧"
+        confirmLoading={themeSaving}
+      >
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Text type="secondary">
+            将使用当前播放位置 <Text code>{currentTime.toFixed(2)}</Text> 秒处的画面。
+          </Text>
+          <Input
+            value={themeName}
+            onChange={(e) => setThemeName(e.target.value)}
+            placeholder="名称（可中文，留空自动生成 room_0001）"
+            maxLength={64}
+          />
+        </Space>
+      </Modal>
     </div>
   );
 }

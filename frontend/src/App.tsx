@@ -1,10 +1,11 @@
-import { AppstoreOutlined, FolderOpenOutlined, TagsOutlined, VideoCameraOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, FolderOpenOutlined, PictureOutlined, TagsOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
 import { useMemo } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import LibraryPage from "./pages/LibraryPage";
 import CategoryManagePage from "./pages/CategoryManagePage";
 import TagManagePage from "./pages/TagManagePage";
+import ThemeBackgroundManagePage from "./pages/ThemeBackgroundManagePage";
 import SettingsPage from "./pages/SettingsPage";
 import VideoDetailPage from "./pages/VideoDetailPage";
 import "./App.css";
@@ -17,6 +18,7 @@ function AppLayout() {
     if (location.pathname.startsWith("/settings")) return "settings";
     if (location.pathname.startsWith("/tags")) return "tags";
     if (location.pathname.startsWith("/categories")) return "categories";
+    if (location.pathname.startsWith("/theme-backgrounds")) return "theme-backgrounds";
     return "library";
   }, [location.pathname]);
 
@@ -40,6 +42,11 @@ function AppLayout() {
               label: <Link to="/settings">设置</Link>,
             },
             {
+              key: "theme-backgrounds",
+              icon: <PictureOutlined />,
+              label: <Link to="/theme-backgrounds">主题背景图</Link>,
+            },
+            {
               key: "tags",
               icon: <TagsOutlined />,
               label: <Link to="/tags">标签管理</Link>,
@@ -58,6 +65,7 @@ function AppLayout() {
           <Route path="/videos/:id" element={<VideoDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/tags" element={<TagManagePage />} />
+          <Route path="/theme-backgrounds" element={<ThemeBackgroundManagePage />} />
           <Route path="/categories" element={<CategoryManagePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

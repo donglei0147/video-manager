@@ -67,6 +67,39 @@ def run_video_clip(
         raise FfmpegError(tail or f"ffmpeg exited with code {proc.returncode}", proc.returncode)
 
 
+def extract_frame(input_path: str, output_path: Path, time_sec: float) -> None:
+    """Extract a single JPEG frame at time_sec."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        settings.ffmpeg_path,
+        "-y",
+        "-ss",
+        str(time_sec),
+        "-i",
+        input_path,
+        "-frames:v",
+        "1",
+        "-q:v",
+        "2",
+        str(output_path),
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=600,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise FfmpegError(str(exc)) from exc
+
+    if proc.returncode != 0 or not output_path.is_file():
+        stderr = (proc.stderr or b"").decode("utf-8", errors="replace").strip()
+        tail = stderr[-2000:] if len(stderr) > 2000 else stderr
+        raise FfmpegError(tail or f"ffmpeg exited with code {proc.returncode}", proc.returncode)
+
+
 def _escape_concat_path(path: str) -> str:
     return path.replace("'", "'\\''")
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.errors import api_error
 from app.db.models import Category, JobVideo, Tag, Video, VideoTag
 from app.schemas.video import CategoryBrief, TagBrief, VideoSummary
+from app.services.theme_background_service import _theme_for_video
 from app.utils import is_valid_datetime, now_local_str, playback_supported
 
 
@@ -22,6 +23,7 @@ class VideoListFilters:
     record_end_to: str | None = None
     has_record_time: bool | None = None
     favorite_min: int | None = None
+    theme_background_id: int | None = None
     include_missing: bool = False
 
 
@@ -64,6 +66,7 @@ def video_to_summary(db: Session, v: Video) -> VideoSummary:
         has_audio=bool(v.has_audio),
         category=_category_for_video(db, v.category_id),
         tags=_tags_for_video(db, v.id),
+        theme_background=_theme_for_video(db, v.theme_background_id),
         stream_url=f"/api/videos/{v.id}/stream",
     )
 
@@ -113,6 +116,8 @@ def _apply_filters(stmt, filters: VideoListFilters):
         )
     if filters.favorite_min is not None:
         stmt = stmt.where(Video.favorite_level >= filters.favorite_min)
+    if filters.theme_background_id is not None:
+        stmt = stmt.where(Video.theme_background_id == filters.theme_background_id)
     return stmt
 
 

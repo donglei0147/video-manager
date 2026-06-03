@@ -11,6 +11,12 @@ class TagBrief(BaseModel):
     name: str
 
 
+class ThemeBackgroundBrief(BaseModel):
+    id: int
+    name: str
+    image_url: str
+
+
 class VideoSummary(BaseModel):
     id: int
     file_name: str
@@ -29,6 +35,7 @@ class VideoSummary(BaseModel):
     has_audio: bool
     category: CategoryBrief | None
     tags: list[TagBrief]
+    theme_background: ThemeBackgroundBrief | None
     stream_url: str
 
 

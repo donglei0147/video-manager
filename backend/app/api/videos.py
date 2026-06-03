@@ -12,6 +12,13 @@ from app.db.models import ScanFolder, Video
 from app.db.session import get_db
 from app.schemas.common import paginate
 from app.schemas.video import VideoUpdate
+from app.schemas.theme_background import ThemeBackgroundFromFrame
+from app.services.theme_background_service import (
+    create_from_frame,
+    link_theme_background,
+    theme_background_out,
+    unlink_theme_background,
+)
 from app.services.video_service import (
     VideoListFilters,
     delete_video_to_delete_dir,
@@ -80,6 +87,7 @@ def get_videos(
     record_end_to: str | None = Query(None),
     has_record_time: bool | None = Query(None),
     favorite_min: int | None = Query(None, ge=1, le=10),
+    theme_background_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
     filters = VideoListFilters(
@@ -92,6 +100,7 @@ def get_videos(
         record_end_to=record_end_to,
         has_record_time=has_record_time,
         favorite_min=favorite_min,
+        theme_background_id=theme_background_id,
         include_missing=include_missing,
     )
     items, total = list_videos(
@@ -130,6 +139,41 @@ def delete_video(video_id: int, db: Session = Depends(get_db)):
     if v is None:
         raise api_error(404, "NOT_FOUND", "视频不存在")
     delete_video_to_delete_dir(db, v)
+    return Response(status_code=204)
+
+
+@router.post("/{video_id}/theme-backgrounds/from-frame", status_code=201)
+def create_theme_background_from_frame(
+    video_id: int,
+    body: ThemeBackgroundFromFrame,
+    db: Session = Depends(get_db),
+):
+    v = db.get(Video, video_id)
+    if v is None:
+        raise api_error(404, "NOT_FOUND", "视频不存在")
+    bg = create_from_frame(db, v, time_sec=body.time_sec, name=body.name)
+    return theme_background_out(db, bg)
+
+
+@router.post("/{video_id}/theme-backgrounds/{background_id}/link")
+def link_video_theme_background(
+    video_id: int,
+    background_id: int,
+    db: Session = Depends(get_db),
+):
+    v = db.get(Video, video_id)
+    if v is None:
+        raise api_error(404, "NOT_FOUND", "视频不存在")
+    v = link_theme_background(db, v, background_id)
+    return _video_detail_dict(db, v)
+
+
+@router.delete("/{video_id}/theme-background", status_code=204)
+def unlink_video_theme_background(video_id: int, db: Session = Depends(get_db)):
+    v = db.get(Video, video_id)
+    if v is None:
+        raise api_error(404, "NOT_FOUND", "视频不存在")
+    unlink_theme_background(db, v)
     return Response(status_code=204)
 
 

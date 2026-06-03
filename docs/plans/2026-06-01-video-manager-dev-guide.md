@@ -72,6 +72,7 @@ video-manager/
 | `FFPROBE_PATH` | `ffprobe` | |
 | `JOB_CONCURRENCY` | `1` | FFmpeg 任务并发 |
 | `CORS_ORIGINS` | `http://localhost:5173` | Vite 开发 |
+| `ASSETS_DIR` | `./data/assets/theme-backgrounds` | 主题背景图存储目录 |
 
 ---
 
@@ -132,7 +133,9 @@ video-manager/
 | 模块 | 约定 |
 |------|------|
 | 视频库 | 分页 + 筛选；首帧仅当前页（≤100） |
-| 详情 | 播放、标注、打开所在目录、截取入口 |
+| 分类管理 | 分类 CRUD |
+| 主题背景图 | 列表、搜索、重命名、删除；点击跳转视频库筛选 |
+| 详情 | 播放、标注、主题背景图截帧/关联、打开所在目录、截取入口 |
 | 删除 | 删除视频时将源文件移动到源目录 `_delete`，并从库中删除记录 |
 | 截取 | 开始必填、结束可空；默认输出名=源文件名 |
 | 合并 | preflight → 提交；默认文件名=**排序后第一个**源文件名 |

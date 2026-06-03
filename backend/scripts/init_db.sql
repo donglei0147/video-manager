@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS video (
     favorite_level INTEGER NOT NULL DEFAULT 0 CHECK (favorite_level >= 0 AND favorite_level <= 10),
     file_mtime TEXT,
     category_id INTEGER,
+    theme_background_id INTEGER,
     metadata_status TEXT NOT NULL DEFAULT 'pending',
     missing INTEGER NOT NULL DEFAULT 0,
     indexed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
@@ -55,6 +56,18 @@ CREATE TABLE IF NOT EXISTS video_tag (
     PRIMARY KEY (video_id, tag_id)
 );
 
+CREATE TABLE IF NOT EXISTS theme_background (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    file_path TEXT NOT NULL UNIQUE,
+    source_video_id INTEGER,
+    source_time_sec REAL,
+    width INTEGER,
+    height INTEGER,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
+);
+
 CREATE TABLE IF NOT EXISTS job (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,
@@ -77,6 +90,7 @@ CREATE TABLE IF NOT EXISTS job_video (
 
 CREATE INDEX IF NOT EXISTS ix_video_folder ON video(scan_folder_id);
 CREATE INDEX IF NOT EXISTS ix_video_category ON video(category_id);
+CREATE INDEX IF NOT EXISTS ix_theme_background_name ON theme_background(name);
 CREATE INDEX IF NOT EXISTS ix_video_favorite ON video(favorite_level);
 CREATE INDEX IF NOT EXISTS ix_video_record_start ON video(record_start_at);
 CREATE INDEX IF NOT EXISTS ix_video_record_end ON video(record_end_at);
